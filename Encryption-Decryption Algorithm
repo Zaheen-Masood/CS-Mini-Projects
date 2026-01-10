@@ -1,0 +1,511 @@
+#include<iostream>
+using namespace std;
+
+
+//Finding the 64 bit number from the 4 digit entered number
+unsigned long long int sfbitnum(unsigned long long int x) {  //sixty four bit number
+
+   unsigned long long int tempx = x;
+   
+   for (int i = 0; i < 3; i++) {
+       
+     x = (x * 10000) + tempx;  // tempx used for adding 1234 to the value of x to help get that 64 bit repeating number
+   }
+   
+   return x;
+}
+
+
+
+
+int countOddSetBits(unsigned long long int num) {
+   
+   int oddsetbits = 0;
+
+   for (int i = 1; i < 64; i += 2) {
+       
+       
+       if((num>>i) & 1){
+           
+           oddsetbits++;   // find the odd set bits in the 64 bit number
+       }
+       
+   }
+   
+   return oddsetbits;
+}
+
+
+
+int countEvenSetBits(unsigned long long int num) {
+   
+   int evensetbits = 0;
+
+   for (int i = 0; i < 64; i += 2) {
+       
+       
+       if((num>>i) & 1){
+           
+           evensetbits++;    // find the even set bits in the 64 bit number
+       }
+       
+   }
+   
+   return evensetbits;
+}
+
+
+// checking if any number is a prime number or not
+bool numisprime(int num){
+   
+   
+   if(num<=1){
+       return false;
+   }
+   
+   for(int k=2;k<=num/2;k++){
+       
+       
+       if(num%k==0){
+           return false; // if number is divisible in by any number so its not a prime so return as false
+       }
+       
+   }
+   
+   return true; // if the number is prime then the function is true
+}
+
+
+
+
+int nthprime(int num){ //num is eth or oth value we need to find prime of
+ 
+   int counter=0;
+   int prime=2;
+   
+   while(counter<num){  // finding nth prime number
+       
+       
+       
+       if(numisprime(prime)){
+           
+           counter++;
+       }
+       
+       if(counter==num){  // when your counter is equal to number you are at the nth prime which you want to found
+           
+           return prime;
+           
+       }else{
+           prime++;  // increment the next number from 2 to check if its prime
+       }
+
+       
+   }
+   return 0; // safety edge
+}
+
+
+
+// The Session Modulus (N)
+
+int thesessionalmodulus(int p1,int e,int o){
+   
+   int refinedprime;
+   
+   if(e>=o){
+       
+        refinedprime = p1;  // Set RefinedPrime = RawPrime
+       
+       
+       //Continuously add (e % 5) + 1 to RefinedPrime
+       
+       while(1){
+           
+           refinedprime+= ((e%5)+1);
+           
+          
+           if(numisprime(refinedprime)){   // Break when RefinedPrime becomes prime again
+               break;
+           }
+       
+           }
+      
+       // If RefinedPrime ever goes above 61, subtract 50 from it
+       
+       if(refinedprime>61){
+           
+           refinedprime=refinedprime-50;
+           
+          
+       
+       }
+       
+   
+       //Clamping refined prime
+       
+       (refinedprime<11)? refinedprime=11: (refinedprime>61)? refinedprime=61: refinedprime+=0;
+       
+           return refinedprime;
+       
+   }
+   
+   
+   
+   if(e<o){
+       
+       
+       refinedprime = p1;  // Set RefinedPrime = RawPrime
+      
+      
+      //Continuously add (e % 5) + 1 to RefinedPrime
+      
+      while(1){
+          
+          refinedprime-= ((o%5)+1);
+          
+         
+          if(numisprime(refinedprime)){   // Break when RefinedPrime becomes prime again
+              break;
+          }
+      
+          }
+     
+       // If RefinedPrime ever goes below 11, add 50 to them
+       
+      if(refinedprime<11){
+          
+          refinedprime=refinedprime+50;
+          
+         
+      
+      }
+      
+  
+      //Clamping refined prime
+      
+      (refinedprime<11)? refinedprime=11: (refinedprime>61)? refinedprime=61: refinedprime+=0;
+      
+          return refinedprime;
+       
+       return 0;
+       
+       
+   }
+   
+   
+   return 0;
+}
+ 
+
+int greatestcommondivisor(int n1,int n2) {
+   
+   while (n2 != 0) {  // swap until num2 is 0, when its zero the value stored in num1 is the GCD according to euclidean algorithm
+       
+       int temp = n2;
+       n2 = n1 % n2;
+       n1 = temp;
+    
+       
+       
+   }
+   return n1;
+}
+
+
+bool Coprime(int n1, int n2) {
+   return greatestcommondivisor(n1, n2) == 1;   // now if your gcd is 1 only then the number is coprime
+}
+
+
+
+
+
+
+unsigned long long int powerfn(unsigned long long int ascii, unsigned long long int exponent, unsigned long long int sessionmodulus ){
+  unsigned long long int x=1;
+ 
+  
+  ascii = ascii % sessionmodulus;
+ 
+  for(int i=0;i<exponent;i++){
+    x = (x * ascii) % sessionmodulus;
+  }
+  return x;
+}
+
+//----------------------------------------------------------//
+// MAIN FUNCTION:
+
+int main(){
+   
+   int id;
+
+    cout<<"Enter a 4 digit ID: "<<endl;
+    cin>>id;
+   
+   //----------------------------------------------------------//
+   //Declaring Variables
+   
+   
+   // storing the return values of functions to a variable in the main function
+   unsigned long long int  xm=  sfbitnum(id);
+   int e = countEvenSetBits(xm);
+   int o= countOddSetBits(xm);
+   
+   int p1=nthprime(e);
+   int p2=nthprime(o);
+   
+   int refinedprime1= thesessionalmodulus (p1, e, o);
+   int refinedprime2= thesessionalmodulus (p2, e, o);
+   int N= refinedprime1*refinedprime2;
+   
+   
+   int totient = (refinedprime1-1) * (refinedprime2-1);
+   int k = e+o; // total on bits both even and odd summed
+   int bindingexponent=0; // instead of leaving it un initialized
+   int unbindingingexponent=0;
+   int z=0;
+   int encrypted_num;
+   
+   
+   
+   //-------------------------------------------------------//
+   // Clamping e and o
+   
+   if(e < 5){
+       
+       e = 5;
+   }
+   
+   if(o < 5){
+       
+       o = 5;
+   }
+   
+   
+   //--------------------------------------------------------------//
+   // The Binding Exponent
+   
+   
+   
+   
+   
+   // Finding the kth co prime for the binding exponent
+   
+   int coprimescounter=0;
+   
+
+   
+   for(int a=2;coprimescounter<k;a++){   // a is the binding exponent we need to find till kth number that is coprime to the system
+       
+       if(greatestcommondivisor(a, totient)==1){
+           
+           coprimescounter++;
+       
+       }
+       
+       bindingexponent=a;  // store a in binding exponent
+       
+   }
+   
+  
+   
+   //--------------------------------------------------------------//
+  //  The Unbinding Exponent
+   
+   
+   
+   int n=1;
+   
+   for (n=1;k<totient;n++){
+       
+       
+       if((n * bindingexponent) % totient == 1){
+           
+           
+           break;
+       }
+       
+       
+   }
+   
+   unbindingingexponent = n;  // assigning outside loop as break is used and it uses previous value
+   
+
+   
+   
+    //-----------------------------------------------------------------//
+    // uniqueness for thesessionalmodulus
+      
+      if(p1==p2){
+          
+          do{
+              
+              refinedprime2++;
+              
+              
+          }while(!(numisprime(refinedprime2)));
+          
+      }
+      
+    
+    //--------------------------------------------------------------//
+    // Outputs
+    
+    cout<<"================================================"<<endl;
+    cout<<"++++==== PAF INTELLIGENCE COMMAND ---*****"<<endl;
+    
+
+
+    
+    cout<<endl;
+    cout<<endl;
+    
+    cout<<"The Even Set Bits are: "<<e<<endl;
+    cout<<"The Odd Set Bits are: "<<o<<endl;
+    
+    cout<<"The Raw Prime P1 is: "<<p1<<endl;
+    cout<<"The Raw Prime P2 is: "<<p2<<endl;
+
+    
+    cout<<endl;
+    cout<<endl;
+   
+    cout<<"Refined Prime 1: "<<refinedprime1<<endl;
+    cout<<"Refined Prime 2: "<<refinedprime2<<endl;
+    cout<<"Session Modulus (N):"<<N<<endl;
+    cout<<"System Totient: "<<totient<<endl;
+    
+    cout<<endl;
+    
+    cout<<"The Binding Exponent (Public): "<<bindingexponent<<endl;
+    cout<<"The Unbinding Exponent (Private): "<<unbindingingexponent<<endl;
+    
+    cout<<endl;
+    cout<<endl;
+    
+    cout<<"Encryption Keypair (Private): {" << N << ",  "<<bindingexponent<<"}"<<endl;
+    cout<<"Dencryption Keypair (Public): {" << N << ",  "<<unbindingingexponent<<"}"<<endl;
+    
+    cout<<endl;
+    cout<<endl;
+    
+    
+    //--------------------------------------------------------------//
+    // Encryption Protocol: "Vector"
+    
+    
+    const int size=999;
+    char chararr[size]; // The array that holds 4 digit encrypted values
+    char chararr2[size*5];
+    
+    cin.ignore();
+    
+    cout<<"Enter the message to Encrypt: "<<endl;
+    cin.getline(chararr,size); // Read into chararr, not chararr2
+    
+
+   
+    
+    for(int i=0;chararr[i]!='\0';i++){
+        
+        int num=chararr[i];
+        
+     encrypted_num = powerfn(num,bindingexponent ,N); //formula given in question
+       
+        // we found the place of number by mathematics and added an ascii value to it to make it a character
+        
+        char E1=(encrypted_num)/1000 + '0'; // first char of encrypted number
+        char E2=(((encrypted_num)/100) % 10) + '0'; // Second char of encrypted number
+        char E3=(((encrypted_num)/10) % 10) + '0'; // Third char of encrypted number
+        char E4=(((encrypted_num)) % 10) + '0'; // Fourth char of encrypted number
+   
+   
+  //doing without loop at manuially incrementing z from z=0
+
+        chararr2[z]=E1;   // the Zeroth index of array
+        z++;
+        
+        chararr2[z]=E2;   // the First index of array
+        z++;
+        
+        chararr2[z]=E3;   // the Second index of array
+        z++;
+        
+        chararr2[z]=E4;   // the Third index of array
+        z++;
+        
+        chararr2[z]='_';   // the Fourth index of array
+        z++;
+        
+     
+        
+    }
+    
+    
+    chararr2[z-1]='\0'; // to not display underscore at the last of complete output
+    
+    
+     
+    // displaying the Encryption code
+    
+    
+    cout<<"THE ENCRYPTED STREAM:"<<chararr2<<endl;
+    
+    cout<<endl;
+  
+    
+    cout<<endl;
+ 
+    
+    
+    
+    
+       //--------------------------------------------------------------//
+       // Decryption Protocol: "Angels"
+
+    cout<<"Enter the Encrypted Data stream: "<<endl;
+
+    cin>>chararr2;
+    
+           int u = 0;
+           int d = 0;
+           char arr3[size];
+
+           while (chararr2[u] != '\0') {
+               int D1 = chararr2[u] - '0'; u++;  // the Zeroth index of array
+               int D2 = chararr2[u] - '0'; u++;  // the First index of array
+               int D3 = chararr2[u] - '0'; u++;  // the Second index of array
+               int D4 = chararr2[u] - '0'; u++; // the Third index of array
+
+               int encryptednum = (D1 * 1000) + (D2 * 100) + (D3 * 10) + D4; //converting those 4 digit encryption to 1 digit original number
+
+               char ascii = powerfn(encryptednum, unbindingingexponent, N); // performing the decryption
+
+               arr3[d] = ascii; // storing the decrypted final number into the array
+               d++;
+
+               u++;
+           }
+
+           arr3[u] = '\0';
+    
+    
+
+    
+    cout << "Decrypted Tactical Message: "<<arr3 << endl;
+
+    cout<<endl;
+    cout<<endl;
+    
+    
+    cout<<"==========MISSION COMPLETED=========="<<endl;
+    
+   return 0;
+}
+
+
+
+
+
