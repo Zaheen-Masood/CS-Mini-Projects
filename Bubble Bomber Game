@@ -1,0 +1,595 @@
+// Created by Zaheen Masood on 20th November
+
+#include <iostream>
+#include <unistd.h>
+#include <termios.h>
+#include <cstdlib> 
+struct termios original_termios;
+using namespace std;
+
+// Function Prototypes
+//------------------------------------//
+
+void restoreTerminal(); // pre made function  // EXP: restores the terminal to its original state when the program ends like cursor shows, typing in terminal
+
+void hideCursor(); // pre made function
+
+void showCursor(); // pre made function
+
+char getch_linux(); // pre made function // EXP: Reads the input from keyboard that user enters by pressing a key
+
+void renderScreen(char screen[][49], int height, int width); // pre made function
+
+
+void setgameready(int blockrow, int blockcoulumn, int blockhealth[][9],int bulletsize, int bulletactive[],
+                  int bulletvelocityX[],int bulletvelocityY[], int& ammo, int& score,
+                  int obstacleX[], int obstacleY[], char obstacleSprite[], bool obstacleActive[], int obstacleSize); 
+
+void blockhealth(char screen[][49],int blockrow, int blockcoulumn, int blockhealth[][9]);
+
+
+void updategame(int bulletx[], int bullety[], int bulletactive[], int bulletsize,
+                int blockhealth[][9], int blockrow, int blockcoulumn,
+                int bulletvelocityX[],int bulletvelocityY[], int height, int width,
+                int& score,
+                int obstacleX[], int obstacleY[], bool obstacleActive[], int obstacleSize); 
+
+
+void runGame(char screen[][49], int& cannonX, bool& gameRunning,
+             int height, int width, int cannonY,
+             int blockrow, int blockcoulumn, int blockHealthArray[][9],
+             int bulletx[], int bullety[], int bulletsize, int bulletactive[],
+             int bulletvelocityX[],int bulletvelocityY[],
+             int& ammo, int& score,
+             int obstacleX[], int obstacleY[], char obstacleSprite[], bool obstacleActive[], int obstacleSize); 
+
+
+void firingthebullet(int cannonX, int cannonY, int bulletx[], int bullety[], int bulletsize, int bulletactive[],
+                     int cannonAngle, int bulletvelocityX[],int bulletvelocityY[],
+                     int& ammo);
+
+
+// Main function
+//-------------------------------------//
+
+int main() {
+
+     const int SCREEN_HEIGHT = 25;
+     const int SCREEN_WIDTH = 48;
+     const int CANNON_Y = 23;
+     int cannonX;
+     bool gameRunning;
+     
+     //  for block 
+     const int blockrow=2;
+     const int blockcoulumn=9;
+     int blockhealth[blockrow][blockcoulumn]; // as a block has 3 healths # = and -
+     
+    //for Bullets 
+    const int bulletsize =5; // can shoot 5 bullets at max at a time
+    int bulletx[bulletsize];
+    int bullety[bulletsize];
+    int bulletactive[bulletsize];
+    int bulletvelocityX[bulletsize];
+    int bulletvelocityY[bulletsize];
+    
+   
+    int ammo;
+    int score;
+    
+    //for obstacles
+    const int obstacleSize = 2; // As there are 2 obstacles
+    int obstacleX[obstacleSize];// tells in which row the obstacle is to be displayed
+    int obstacleY[obstacleSize]; // tells in which row the obstacle is to be displayed
+    char obstacleSprite[obstacleSize];  // it stores the obstacles as character'|' from which the bullet is deflected
+    bool obstacleActive[obstacleSize];
+   
+     
+
+    char screen[SCREEN_HEIGHT][SCREEN_WIDTH + 1];
+       
+    
+    setgameready(blockrow, blockcoulumn, blockhealth,bulletsize,bulletactive,bulletvelocityX,bulletvelocityY,
+                 ammo, score,obstacleX, obstacleY, obstacleSprite, obstacleActive, obstacleSize); 
+
+     system("clear");
+     hideCursor();
+     
+     // THe game LOOP
+    runGame(screen, cannonX, gameRunning,
+            SCREEN_HEIGHT, SCREEN_WIDTH, CANNON_Y,
+            blockrow, blockcoulumn, blockhealth,
+            bulletx, bullety, bulletsize, bulletactive, bulletvelocityX, bulletvelocityY,
+            ammo, score,
+            obstacleX, obstacleY, obstacleSprite, obstacleActive, obstacleSize); 
+            
+            
+     system("clear");
+     
+     
+     for (int i = 0; i < 10; ++i)cout << "\n";
+    cout << "                  Game Closed.\n";
+    
+   // displaying final score when user ends at the end of gameloop
+    cout << "               Final Score: " << score << "\n";
+    
+   
+     for (int i = 0; i < 10; ++i) cout << "\n";
+     
+     return 0;
+
+     
+     
+}
+
+
+
+
+
+//Modular Functions
+//----------------------------------------//
+
+void restoreTerminal() {
+     tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);  
+}
+
+
+
+void hideCursor() {
+     cout << "\033[?25l";
+}
+
+void showCursor() {
+     cout << "\033[?25h";
+}
+
+
+char getch_linux() {
+     static bool first_call = true;
+
+     if (first_call) {
+         tcgetattr(STDIN_FILENO, &original_termios);
+         
+         atexit(restoreTerminal);
+         atexit(showCursor);
+
+         struct termios new_termios = original_termios;
+         new_termios.c_lflag &= ~(ICANON | ECHO);
+         new_termios.c_cc[VMIN] = 0;
+         new_termios.c_cc[VTIME] = 0;
+         
+         tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+         
+         first_call = false;
+     }
+
+     char c = 0;
+     read(STDIN_FILENO, &c, 1); 
+     
+     return c;
+}
+
+
+void renderScreen(char screen[][49], int height, int width) {
+     cout << "\033[H";
+     for (int y = 0; y < height; ++y) {
+         for (int x = 0; x < width; ++x) {
+            cout << screen[y][x];
+         }
+         if (y < height - 1) {
+            cout << "\n";
+         }
+     }
+}
+
+
+void runGame(char screen[][49], int& cannonX, bool& gameRunning,
+             int height, int width, int cannonY,
+             int blockrow, int blockcoulumn, int blockHealthArray[][9],
+             int bulletx[], int bullety[], int bulletsize, int bulletactive[],
+             int bulletvelocityX[], int bulletvelocityY[],
+             int& ammo, int& score,
+             int obstacleX[], int obstacleY[], char obstacleSprite[], bool obstacleActive[], int obstacleSize) 
+{
+     gameRunning = true;
+     cannonX = width / 2; // canon initial position along X
+     
+     int cannonangle=0; // 0 denotes straight, 1 denotes towards right side and -1 towards leftside
+
+     while (gameRunning) {
+         char c = getch_linux(); // getch_linux() reads keyboard...
+         
+     
+         if (c ==' ') {
+             
+            // when the user presses spacebar it calls the firing bullet function...
+             firingthebullet(cannonX, cannonY, bulletx,bullety, bulletsize, bulletactive,
+                             cannonangle, bulletvelocityX,bulletvelocityY, ammo);
+             
+         }else if (c == 'a' || c == 'A') {
+             if (cannonX - 2 > 0) cannonX--;
+         }
+         else if (c == 'd' || c == 'D') {
+             if (cannonX + 2 < width - 1) cannonX++;
+         }else if (c == 'z' || c == 'Z') {
+             cannonangle = -1;     // aim left for the canon
+         }
+         else if (c == 'c' || c == 'C') {
+             cannonangle = 1;     // aim right for the canon
+         }else if(c == 's' || c == 'S'){
+             cannonangle = 0;     // aim straight for the canon
+         }
+         else if (c == 'q' || c == '\033') {
+             gameRunning = false;
+         }
+         
+         
+         
+         updategame(bulletx, bullety, bulletactive, bulletsize,
+                    blockHealthArray, blockrow, blockcoulumn,
+                    bulletvelocityX, bulletvelocityY, height, width,
+                    score,
+                    obstacleX, obstacleY, obstacleActive, obstacleSize); 
+         
+         // ends game if all blocks are gone or ammos are finished
+  bool allBlocksGone = true;
+         for(int bi = 0; bi < blockrow; bi++){
+             for(int bj = 0; bj < blockcoulumn; bj++){
+                 if(blockHealthArray[bi][bj] > 0){
+                     allBlocksGone = false;
+                     break;
+                 }
+             }
+             if(!allBlocksGone) break;
+         }
+
+         if(allBlocksGone || ammo <= 0){
+             gameRunning = false;
+         }
+         for (int y = 0; y < height; ++y) {
+             for (int x = 0; x < width; ++x) {
+                 screen[y][x] = ' ';
+             }
+             screen[y][width] = '\0';
+         }
+
+         for (int y = 0; y < height; ++y) {
+             if (y == 0 || y == height - 1) {
+                 for (int x = 0; x < width; ++x) {
+                     screen[y][x] = '#';
+                 }
+             }
+             else {
+                 screen[y][0] = '#';
+                 screen[y][width - 1] = '#';
+             }
+         }
+
+        
+     
+        screen[height - 1][0] = '#';
+        screen[height - 1][1] = '#';
+        screen[height - 1][2] = 'A';
+        screen[height - 1][3] = 'm';
+        screen[height - 1][4] = 'm';
+        screen[height - 1][5] = 'o';
+        screen[height - 1][6] = ':';
+        screen[height - 1][7] = ' ';
+        screen[height - 1][8] = (ammo / 10) + '0';
+        screen[height - 1][9] = (ammo % 10) + '0';
+        screen[height - 1][10] = '#';
+        screen[height - 1][11] = '#';
+
+        
+        
+        screen[height - 1][25] = '#';
+        screen[height - 1][26] = '#';
+        screen[height - 1][27] = 'S';
+        screen[height - 1][28] = 'c';
+        screen[height - 1][29] = 'o';
+        screen[height - 1][30] = 'r';
+        screen[height - 1][31] = 'e';
+        screen[height - 1][32] = ':';
+        screen[height - 1][33] = ' ';
+        screen[height - 1][34] = (score / 100) + '0';
+        screen[height - 1][35] = ((score / 10) % 10) + '0';
+        screen[height - 1][36] = (score % 10) + '0';
+        screen[height - 1][37] = '#';
+        screen[height - 1][38] = '#';
+   
+   // drawing the canon based on input from user
+         if (cannonangle == -1) {
+             screen[cannonY][cannonX - 1] = '\\';
+             screen[cannonY][cannonX] = ' ';
+             screen[cannonY][cannonX + 1] = '\\';
+         } else if (cannonangle == 1) {
+             screen[cannonY][cannonX - 1] = '/';
+             screen[cannonY][cannonX] = ' ';
+             screen[cannonY][cannonX + 1] = '/';
+         } else {
+             screen[cannonY][cannonX - 1] = '|';
+             screen[cannonY][cannonX] = ' ';
+             screen[cannonY][cannonX + 1] = '|';
+         }
+         
+         
+         
+       // printing the bullet 'o'
+         for (int i = 0; i < bulletsize; i++) {
+             if (bulletactive[i]) {
+                 screen[bullety[i]][bulletx[i]] = 'o';
+             }
+         }
+
+  
+        for (int i = 0; i < obstacleSize; i++) {
+            if (obstacleActive[i]) {
+                screen[obstacleY[i]][obstacleX[i]] = obstacleSprite[i];
+            }
+        }
+       
+        
+         blockhealth(screen, blockrow, blockcoulumn, blockHealthArray);
+
+         renderScreen(screen, height, width);
+     
+         
+         usleep(16000);
+     }
+}
+
+
+
+
+  
+ // runs before the game begins to make sure no visual glitches
+
+void setgameready(int blockrow,int blockcoulumn,int blockhealth[][9],int bulletsize, int bulletactive[],
+                  int bulletvelocityX[],int bulletvelocityY[], int& ammo, int& score,
+                  int obstacleX[], int obstacleY[], char obstacleSprite[], bool obstacleActive[], int obstacleSize){ // --- NEW ---
+
+ // store 3 (# type) in all elements of the block health array initialy
+ for(int i=0;i<blockrow;i++){
+
+         for(int j=0;j<blockcoulumn;j++){
+
+             
+            blockhealth[i][j]=3;
+             
+
+         }
+
+     }
+ 
+ 
+ ammo = 50;
+ score = 0;
+ 
+
+ // initially loop through all bullets of array and set it to false so no bullets show up as a visual bug or glitch
+
+ for(int i=0;i<bulletsize;i++){
+
+         bulletactive[i]=false;
+
+     
+     bulletvelocityX[i]=0;    // set all bullets to zero so the bullets diont move
+     bulletvelocityY[i]=0;
+     
+
+     }
+     
+ 
+    // Obstacle 0 left |
+    obstacleActive[0] = true;
+    obstacleX[0] = 15;
+    obstacleY[0] = 13;
+    obstacleSprite[0] = '|';
+
+    // Obstacle 1 right |
+    obstacleActive[1] = true;
+    obstacleX[1] = 30;
+    obstacleY[1] = 13;
+    obstacleSprite[1] = '|';
+ 
+     
+     
+     
+   
+
+
+}
+
+
+
+void blockhealth(char screen[][49],int blockrow,int blockcoulumn,int blockhealth[][9]){
+     
+  
+     for(int i=0; i<blockrow; i++){
+         
+         
+         for(int j=0; j<blockcoulumn; j++){
+             
+             
+             int health = blockhealth[i][j];  // fetch the health of block at that index
+             
+             
+             int screenY = i + 2; // Draw the bricks at row 2 and 3 when i is 0 and 1 respectively
+             
+             
+             int screenX_start = 6 + (j * 4); // leaves padding and start to print the block after the padding
+             
+             
+             // Drawing the 4-character-wide each brick depending on health
+             if (health == 3) {
+                 
+                 screen[screenY][screenX_start + 0] = '#';
+                 screen[screenY][screenX_start + 1] = '#';
+                 screen[screenY][screenX_start + 2] = '#';
+         screen[screenY][screenX_start + 3] = '#';
+             } else if (health == 2) {
+                 
+                 screen[screenY][screenX_start + 0] = '=';
+                 screen[screenY][screenX_start + 1] = '=';
+                 screen[screenY][screenX_start + 2] = '=';
+         screen[screenY][screenX_start + 3] = '=';
+             } else if (health == 1) {
+                
+                 screen[screenY][screenX_start + 0] = '-';
+                 screen[screenY][screenX_start + 1] = '-';
+                 screen[screenY][screenX_start + 2] = '-';
+         screen[screenY][screenX_start + 3] = '-';
+             }
+            
+         }
+     }
+}
+
+
+
+void firingthebullet(int cannonX, int cannonY, int bulletx[], int bullety[], int bulletsize, int bulletactive[],
+                     int cannonAngle, int bulletvelocityX[],int bulletvelocityY[],
+                     int& ammo){ 
+
+    
+    if (ammo <= 0) {
+        return; // when there is no remaining ammo left to shoot
+    }
+    
+     
+     for(int i=0;i<bulletsize;i++){
+         
+         if(!bulletactive[i]){ // find the first inactive bullet
+             
+            
+             bulletactive[i]=true; // set it to true and now you have a bullet you will shoot out of the canon
+             bulletx[i]=cannonX; // set its position to the position of the canon in the x coordinate
+             bullety[i]=cannonY-1;// the bullet will always appear above the canon so -1 the y coordinate
+             
+            
+             bulletvelocityY[i] = -1;       // so it moves up in direction
+             bulletvelocityX[i] = cannonAngle; // initially the canon fires straight upwards
+             
+             
+             ammo--; // before returning decrement the bullet by 1
+             
+             
+             return; // can only shoot once thus return immediately
+         }
+         
+         
+     }
+
+}
+
+
+
+void updategame(int bulletx[], int bullety[], int bulletactive[], int bulletsize,
+                int blockhealth[][9], int blockrow, int blockcoulumn,
+                int bulletvelocityX[], int bulletvelocityY[], int height, int width,
+                int& score,
+                int obstacleX[], int obstacleY[], bool obstacleActive[], int obstacleSize) { 
+    
+  
+     for (int i = 0; i < bulletsize; i++) {
+         
+         // Check if that exact bullet is alive
+         if (bulletactive[i] == true) {
+             
+             
+             
+             
+             bullety[i]+= bulletvelocityY[i]; //add y velocity -1 to move upwards direction to bullets x position
+             bulletx[i]+= bulletvelocityX[i];// add x velocity which can be -1,0,1 to bbullets x position
+             
+             
+             
+             
+             // top wall check and reflection
+             if (bullety[i] <= 0) {
+             
+                 bulletvelocityY[i] = 1;  // reverse the bullet if it hits the top wall  now it moves in downwarads direction (1 Y velocity)
+             }
+             
+             // bottom wall check and kill
+             if(bullety[i]>=height-1){
+                 
+                 bulletactive[i]=false;
+             }
+             
+             // side wall reflections
+            
+             if(bulletx[i] <=1 || bulletx[i] >= width-2){
+                 
+             
+                 bulletvelocityX[i]*=-1; // invert its x velocity
+             }
+             
+             
+             
+         }
+     }
+
+
+    //check for collision b/w block and bullet
+     
+    for (int b = 0; b < bulletsize; b++) { // b serves as the bullet indeex when we iterate through the bulletactive array
+         
+         // Skip this bullet if it's not 'active'
+         if (!bulletactive[b]) {
+             continue;
+         }
+
+        //  (Check for Obstacle Collision FIRST)
+        for (int o = 0; o < obstacleSize; o++) {
+            if (obstacleActive[o]) {
+                // Check if bullet X and Y match the obstacle's X and Y
+                if (bullety[b] == obstacleY[o] && bulletx[b] == obstacleX[o]) {
+                    
+                  
+                    
+                    // "Deviate" the bullet by reflecting it along X axis
+                 
+                    bulletvelocityX[b] = bulletvelocityX[b] * -1; // Reflect X
+                }
+            }
+        }
+     
+
+
+        // now loop through the brick for this one active bullet you just found
+         
+         for (int i = 0; i < blockrow; i++) {
+             
+             for (int j = 0; j < blockcoulumn; j++) {
+                 
+                 
+                 if (blockhealth[i][j] > 0) { // if the brick is alive then go on else nothing will hapepen in the program
+                     
+                     // Get the block  position...
+                     int screenY = i + 2;
+                     int screenX_start = 6 + (j * 4);
+
+                     
+// check if Y position of bullet and block match...
+                     if (bullety[b] == screenY && (bulletx[b] >= screenX_start && bulletx[b] < screenX_start + 4))
+                     {
+                         
+                         
+                         
+                        // now that we know that the bukllet has hit we invert its Y velocity so it reflects back
+                        
+                         bulletvelocityY[b] = bulletvelocityY[b] * -1;
+                         
+                         // block health also decreases when bullet hits as it changes shape
+                         blockhealth[i][j]--;
+
+                         // score increments by 10 when user hits a block
+                         score += 10;
+                        
+                     }
+                 }
+             }
+         }
+     }
+}
