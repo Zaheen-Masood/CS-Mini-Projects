@@ -1,0 +1,652 @@
+// Built by Zaheen Masood on 2nd, November, 2025
+
+#include<iostream>
+#include<fstream>
+using namespace std;
+
+
+
+
+
+// FUNCTION PROTOTYPES:
+
+//-----------------------------------------------------------------------------------------------//
+
+void readingimages(int images[5][64][64][3]);
+int clampingfn(int num);
+void Channel(int matrix[64][64][3]);
+void Visualization(int images[64][64][3]);
+void monochrome(int matrix[64][64][3]);
+void Brightnesss(int matrix[64][64][3], int n); 
+void contrast(int matrix[64][64][3],int n);
+void rotation(int matrix[64][64][3]);
+void Blurring(int matrix[64][64][3]);
+void Sharpening(int matrix[64][64][3]);
+
+
+
+
+// MAIN FUNCTION
+
+//-----------------------------------------------------------------------------------------------//
+
+int main(){
+    
+   
+    int userchoice,choice,n,subcontrast;
+    int alpha,beta,gamma;
+
+   
+int images[5][64][64][3];
+ int matrix[64][64][3];
+
+
+   
+    do{
+       cout<<"---------------------------------"<<endl;
+        cout<<"Welcome to Image Processing: "<<endl;
+        cin>>userchoice;
+       
+    }while(userchoice>5 || userchoice<1);
+
+   
+    readingimages(images);
+    Visualization(images[userchoice - 1]);
+    
+    
+   cout<<endl<<endl;
+cout<<"--- Image Analysis Menu ---"<<endl;
+cout<<"1.Monochrome"<<endl;
+cout<<"2.Brightness"<<endl;
+cout<<"3.Contrast"<<endl;
+cout<<"4.Rotation"<<endl;
+cout<<"5.Blurring"<<endl;
+cout<<"6.Sharpening"<<endl;
+cin>>choice;
+
+
+switch(choice){
+
+case 1:
+monochrome(images[userchoice - 1]); 
+
+break;
+
+case 2:
+
+cout<<"Enter what brightness you want for your image: "<<endl;
+cin>>n;
+
+Brightnesss(images[userchoice - 1], n);  // selects one specific image and then pass that image to be process
+
+break;
+
+case 3:
+cout<<"Do you want to Increase Contrast or Decrease Contrast?"<<endl;
+cout<<"1.Increase Contrast"<<endl;
+cout<<"2.Decrease Contrast"<<endl;
+cin>>subcontrast;
+if(subcontrast==1){
+
+contrast(images[userchoice - 1], 1.2);
+
+}else if(subcontrast==2){
+
+contrast(images[userchoice - 1], 0.5);
+
+}
+
+break;
+
+case 4: 
+
+
+rotation(images[userchoice - 1]);
+
+break;
+
+case 5:
+
+Blurring(images[userchoice - 1]);
+
+break;
+
+case 6:
+
+Sharpening(images[userchoice - 1]);
+
+break;
+}
+
+
+}   
+
+
+
+// Function Defination Q6:
+
+//----------------------------------------------------------------------------//
+
+
+
+void readingimages(int images[5][64][64][3]) {
+   
+    ifstream imagefile("/home/zaheen/Desktop/PF Assignment 3/images.txt");
+    if (!imagefile.is_open()) {
+        cout << "Error as image is not presesnt in the same directory so its not loading...." << endl;
+
+    }
+   
+
+    // now reading and storing the file with 5 images into a single array
+   
+   
+    for(int i=0;i<5;i++){ // for which images 1,2,3,4,5
+       
+        for(int j=0;j<64;j++){ // for size
+           
+            for(int k=0;k<64;k++){// for size
+               
+                for(int x=0;x<3;x++){
+                   
+                   
+                   imagefile>>images[i][j][k][x];  // read each pixel from the file with 5 images
+                   
+                   
+                }
+               
+            }
+           
+        }
+       
+    }
+   
+    imagefile.close();
+   
+}
+
+
+
+//----------------------------------------------------------------------------//
+
+
+
+void Channel(int matrix[64][64][3]){
+   
+   
+    for(int k=0;k<64;k++){
+       
+       
+        for(int f=0;f<64;f++){
+           
+            int alpha = matrix[k][f][0]; // Alpha channel (\CE\B1)
+            int beta = matrix[k][f][1];  // Beta channel (\CE\B2)
+            int gamma = matrix[k][f][2]; // Gamma channel (\CE\B3)
+           
+        }
+       
+    }
+   
+   
+}
+
+
+//----------------------------------------------------------------------------//
+
+
+// Clamping to see if the value at any index is greater than maximum colour value 255
+
+int clampingfn(int num){
+   
+    // clamp value to 255 if greater than 255 else if it is less than 0 clamp it to 0
+   
+    if(num>255){
+        num=255;}
+    else if(num<0){
+        num=0;}
+       
+       
+        return num;
+   
+   
+   
+}
+
+
+
+//----------------------------------------------------------------------------//
+
+
+
+void Visualization(int matrix[64][64][3]){
+   
+   
+  
+   
+   
+    for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           
+           
+            int alpha = matrix[k][f][0]; // Alpha channel (\CE\B1)
+            int beta = matrix[k][f][1];  // Beta channel (\CE\B2)
+            int gamma = matrix[k][f][2]; // Gamma channel (\CE\B3)
+           
+            // As instructed by the assignment 
+ 
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m"; // rendering every pixel
+                     cout << "  ";       // one character is double the height as its width
+                     cout << "\033[0m"; // image bleeding
+           
+        }
+       
+            cout << "\033[0m"; // So image doesnt bleed as an extra measure
+            cout<<endl; // So it completely prints the last line of image
+    }
+   
+  
+   
+}
+
+
+
+//----------------------------------------------------------------------------//
+
+
+void monochrome(int matrix[64][64][3]){
+
+
+ for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           
+            int avg;
+            int alpha = matrix[k][f][0]; // Alpha channel (\CE\B1)
+            int beta = matrix[k][f][1];  // Beta channel (\CE\B2)
+            int gamma = matrix[k][f][2]; // Gamma channel (\CE\B3)
+           
+  
+           avg=(alpha+beta+gamma)/3;
+           
+           // FIX 3: Save the change back to the array
+           matrix[k][f][0] = avg;
+           matrix[k][f][1] = avg;
+           matrix[k][f][2] = avg;
+
+           alpha = avg;
+           beta =avg;
+           gamma=avg;
+
+           // As instructed by the assignment 
+ 
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m"; // rendering every pixel
+                     cout << "  ";       // one character is double the height as its width
+                     cout << "\033[0m"; // image bleeding
+           
+        }
+       
+            cout << "\033[0m"; // So image doesnt bleed as an extra measure
+            cout<<endl; // So it completely prints the last line of image
+    }
+   
+
+}
+
+
+
+//----------------------------------------------------------------------------//
+
+
+
+void Brightnesss(int matrix[64][64][3], int n){  // passing n as parametres
+
+    int alpha,beta,gamma;
+  
+    for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           
+         
+             alpha = matrix[k][f][0] + n; // Alpha channel (\CE\B1)
+             beta = matrix[k][f][1] + n;  // Beta channel (\CE\B2)
+             gamma = matrix[k][f][2] + n; // Gamma channel (\CE\B3)
+           
+
+             // Clamping
+
+alpha = clampingfn(alpha);
+beta  = clampingfn(beta);
+gamma = clampingfn(gamma);
+
+
+// after clamping store it in the array of name matrix
+matrix[k][f][0] = alpha;
+matrix[k][f][1] = beta;
+matrix[k][f][2] = gamma;
+
+
+            // As instructed by the assignment 
+ 
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m"; // rendering every pixel
+                     cout << "  ";       // one character is double the height as its width
+                     cout << "\033[0m"; // image bleeding
+           
+        }
+       
+            cout << "\033[0m"; // So image doesnt bleed as an extra measure
+            cout<<endl; // So it completely prints the last line of image
+    }
+   
+  
+}
+
+
+//----------------------------------------------------------------------------//
+
+
+
+void contrast(int matrix[64][64][3], int n){
+
+
+
+ int alpha,beta,gamma;
+  
+    for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           
+         
+             alpha = (1.2 * matrix[k][f][0] - 128) + 128; // Alpha channel (\CE\B1)
+             beta = (1.2 * matrix[k][f][1] - 128) + 128;;  // Beta channel (\CE\B2)
+             gamma = (1.2 * matrix[k][f][2] - 128) + 128;; // Gamma channel (\CE\B3)
+           
+
+             // Clamping
+
+ alpha = clampingfn(alpha);
+beta  = clampingfn(beta);
+gamma = clampingfn(gamma);
+
+
+// after clamping store it in the array of name matrix
+matrix[k][f][0] = alpha;
+matrix[k][f][1] = beta;
+matrix[k][f][2] = gamma;
+
+
+            // As instructed by the assignment 
+ 
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m"; // rendering every pixel
+                     cout << "  ";       // one character is double the height as its width
+                     cout << "\033[0m"; // image bleeding
+           
+        }
+       
+            cout << "\033[0m"; // So image doesnt bleed as an extra measure
+            cout<<endl; // So it completely prints the last line of image
+    }
+   
+  
+
+
+
+
+
+
+}
+
+
+//----------------------------------------------------------------------------//
+
+
+
+void rotation(int matrix[64][64][3]){
+
+int store[64][64][3];
+
+
+    int alpha,beta,gamma;
+
+
+
+  // storing the temporary array in stored named array
+    for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           for(int i=0;i<3;i++){
+         // new rows will be equal to last coulumns (f)
+         // new coulumn will be lasst row (63-r)
+            store[f][63-k][i]  = matrix[k][f][i]; // i is the channel  a, b, g 
+        
+           }
+
+
+	}
+
+}
+
+
+
+
+// storing the shifted array in the original matrix that is to be displayed
+ for(int k=0;k<64;k++){
+       
+        for(int f=0;f<64;f++){
+           
+           for(int i=0;i<3;i++){
+         
+            matrix[k][f][i]  = store[k][f][i]; // i is the channel  a, b, g 
+         	}
+
+
+        alpha = matrix[k][f][0];
+        beta = matrix[k][f][1];
+        gamma =  matrix[k][f][2];
+
+
+ cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m"; // rendering every pixel
+                     cout << "  ";       // one character is double the height as its width
+                     cout << "\033[0m"; // image bleeding
+          	      }
+ // As instructed by the assignment 
+
+cout << "\033[0m"; // So image doesnt bleed as an extra measure
+            cout<<endl; // So it completely prints the last line of image
+ 
+         }
+
+   
+}
+
+//--------------------------------------------------//
+
+
+void Blurring(int matrix [64][64][3]) {
+
+    
+   //1. storing original array into a temporary'
+   
+   
+    int store[64][64][3];
+    for(int i=0; i<64; i++) {
+        for(int j=0; j<64; j++) {
+        
+            store[i][j][0] = matrix[i][j][0];
+            store[i][j][1] = matrix[i][j][1];
+            store[i][j][2] = matrix[i][j][2];	
+        }
+    }
+
+        // 2.Aply kernal matrix index to that specific index
+        
+    for(int i=1; i<63; i++) { 
+    
+        for(int j=1; j<63; j++) {   // runs from 1 to 62 as its excluding borders
+     
+            for(int k=0; k<3; k++) {
+            
+                int p1 = matrix[i+1][j-1][k];  //bottom left
+                int p2 = matrix[i+1][j+1][k]; // bottom right
+                int p3 = matrix[i+1][j][k];   // bottom mid
+                int p4 = matrix[i][j-1][k];   // middle left
+                int p5 = matrix[i][j+1][k];   // middle right
+                int p6 = matrix[i-1][j-1][k]; // top left
+                int p7 = matrix[i-1][j+1][k]; // top right
+                int p8 = matrix[i-1][j][k];   // top middle
+                int p9 = matrix[i][j][k];     // middle
+
+                int sum = (p1*1) + (p2*1) + (p3*2) + (p4*2) + (p5*2) + (p6*1) + (p7*1) + (p8*2) + (p9*4);  // apply kernal weights to specific index and add all to find sum
+                
+                int avg = sum / 16;
+                
+                store[i][j][k] = avg; // Saving the blurred PIXEL to temporary array
+            }
+        }
+    }
+
+    
+    // save the now blurred array into the main array (matrix)
+    for(int i=0; i<64; i++) {
+        for(int j=0; j<64; j++) {
+            for(int k=0; k<3; k++) {
+                matrix[i][j][k] = store[i][j][k];
+            }
+        }
+    }
+
+ 
+// display using alpha beta gamma
+    for(int i=0; i<64; i++) { 
+        for(int j=0; j<64; j++) { 
+            
+           
+            int alpha = matrix[i][j][0];
+            int beta  = matrix[i][j][1];
+            int gamma = matrix[i][j][2];
+
+            
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m";
+            cout << "  "; 
+            cout << "\033[0m";
+        }
+        
+        
+        cout << "\033[0m"; 
+        cout << endl; 
+    }
+}
+
+
+//---------------------------------------------//
+
+void Sharpening(int matrix [64][64][3]){
+
+
+ 
+   //1. storing original array into a temporary'
+   
+   
+    int store[64][64][3];
+    for(int i=0; i<64; i++) {
+        for(int j=0; j<64; j++) {
+        
+            store[i][j][0] = matrix[i][j][0];
+            store[i][j][1] = matrix[i][j][1];
+            store[i][j][2] = matrix[i][j][2];	
+        }
+    }
+
+        // 2.Aply kernal matrix index to that specific index
+        
+    for(int i=1; i<63; i++) { 
+    
+        for(int j=1; j<63; j++) {   // runs from 1 to 62 as its excluding borders
+     
+            for(int k=0; k<3; k++) {
+            
+                int p1 = matrix[i+1][j-1][k];  //bottom left
+                int p2 = matrix[i+1][j+1][k]; // bottom right
+                int p3 = matrix[i+1][j][k];   // bottom mid
+                int p4 = matrix[i][j-1][k];   // middle left
+                int p5 = matrix[i][j+1][k];   // middle right
+                int p6 = matrix[i-1][j-1][k]; // top left
+                int p7 = matrix[i-1][j+1][k]; // top right
+                int p8 = matrix[i-1][j][k];   // top middle
+                int p9 = matrix[i][j][k];     // middle
+
+            
+int sum = (p1*0) + (p2*0) + (p3*-1) + (p4*-1) + (p5*-1) + (p6*0) + (p7*0) + (p8*-1) + (p9*5);  // apply kernal weights to specific index and add all to find sum
+                
+            int avg = sum/1;
+                
+                store[i][j][k] = avg; // Saving the blurred PIXEL to temporary array
+            }
+        }
+    }
+
+    
+    // save the now blurred array into the main array (matrix)
+    for(int i=0; i<64; i++) {
+        for(int j=0; j<64; j++) {
+            for(int k=0; k<3; k++) {
+                matrix[i][j][k] = store[i][j][k];
+            }
+        }
+    }
+
+ 
+// display using alpha beta gamma
+    for(int i=0; i<64; i++) { 
+        for(int j=0; j<64; j++) { 
+            
+           
+            int alpha = matrix[i][j][0];
+            int beta  = matrix[i][j][1];
+            int gamma = matrix[i][j][2];
+
+            
+            cout << "\033[48;2;" << alpha << ";" << beta << ";" << gamma << "m";
+            cout << "  "; 
+            cout << "\033[0m";
+        }
+        
+        
+        cout << "\033[0m"; 
+        cout << endl; 
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+      
+
+              
+
+		
+ 
+   
+       
+  
+
+
+
+
+
+
+
+
+
